@@ -8,7 +8,7 @@ node {
     }
     
 stage ('Sonar Analysis') {
-     docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 ' + '--network=ci-network --link sonarqube-forja:sonarqube '
+     docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 ' + '--link sonarqube-forja:sonarqube --network=ci-network '
      +'-v /var/run/docker.sock:/var/run/docker.sock') {
         sh 'mvn sonar:sonar -Dsonar.jdbc.url=jdbc:h2:tcp://sonarqube:9090/sonar -Dsonar.host.url=http://sonarqube:9000'
 }
@@ -33,4 +33,3 @@ stage ('Buils Docker image') {
 }
 
 }
-
