@@ -1,18 +1,19 @@
+#!groovy
+
 node {
-        dockerfile {
-            filename 'Dockerfile.jenkinsAgent'
-            args '-v /var/run/docker.sock:/var/run/docker.sock --network="e35ef571401a" -u jenkins:docker'
-       }
-    stage('Git Checkout') {
+    script {
+        pom = readMavenPom file: 'pom.xml'
+        VERSION = pom.version     
+        TIME = java.time.LocalDateTime.now().toLocalDate();
+     }
+     echo "Hello world"
+     echo "${TIME}"
+     echo "${VERSION}"
+
+stage('Git Checkout') {
     git url: "ssh://jenkins@codeurjc-forge-gerrit:29418/awesome-project"
-    }
-    
-stage ('Sonar Analysis') {
-     docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 ' + '--link sonarqube-forja:sonarqube --network=ci-network '
-     +'-v /var/run/docker.sock:/var/run/docker.sock') {
-        sh 'mvn sonar:sonar -Dsonar.jdbc.url=jdbc:h2:tcp://sonarqube:9090/sonar -Dsonar.host.url=http://sonarqube:9000'
 }
-}
+
 stage ('Unit and SystemTest') {
      docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 '
      +'-v /var/run/docker.sock:/var/run/docker.sock') {
@@ -21,15 +22,23 @@ stage ('Unit and SystemTest') {
         step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
         archiveArtifacts artifacts: 'target/*.flv'
 }
+
+stage ('Sonar Analysis') {
+     docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 ' + '--link sonarqube-forja:sonarqube --network=ci-network '
+     +'-v /var/run/docker.sock:/var/run/docker.sock') {
+        sh 'mvn sonar:sonar -Dsonar.jdbc.url=jdbc:h2:tcp://sonarqube:9090/sonar -Dsonar.host.url=http://sonarqube:9000'
+    }
+}
+
 stage ('Buils Docker image') {
-     sh 'TIME=$(date +%Y%d%m)'
-     sh' VERSION=$(grep SNAP pom.xml | cut -c11-15)'
+    
      sh 'cp config/nightly_dockerfile target/Dockerfile'
-     sh 'docker build --build-arg GIT_COMMIT=$(git log -1 --format=%h) -t forjaci2019/awesome-project:$VERSION.nightly.$TIME target/.'
+     sh "docker build  -t forjaci2019/awesome-project:${VERSION}.nightly.${TIME} target/."
  }
 
  stage ('Upload image to DockerHub') {
-     sh 'docker tag forjaci2019/awesome-project:$VERSION.nightly.$TIME forjaci2019/awesome-project:dev'
+     sh "docker tag forjaci2019/awesome-project:${TIME}.nightly.${VERSION} forjaci2019/awesome-project:dev"
      sh 'docker login -u="forjaci2019" -p="forjaci2019"'
      sh 'docker push forjaci2019/awesome-project:dev'
+    }
 }
