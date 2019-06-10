@@ -1,0 +1,62 @@
+#!groovy
+
+node {
+
+stage('Git Checkout') {
+    git url: "ssh://jenkins@codeurjc-forge-gerrit:29418/awesome-project"
+}
+
+stage('Delete "SNAPSHOT" from pom.xml') {
+    sh 'sed -i "s/-SNAPSHOT//" pom.xml'
+    sh 'cat pom.xml'
+
+}
+
+stage ('Unit and SystemTest') {
+     docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 '
+     +'-v /var/run/docker.sock:/var/run/docker.sock') {
+        sh 'rm /target/*.flv || true'
+        sh 'mvn package -Dmaven.test.failure.ignore=true -Dtest=BoardParameterizedTest,BoardTest,TicTacToeGameTest test'  }
+        step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
+        archiveArtifacts artifacts: 'target/*.flv'
+}
+
+stage ('Sonar Analysis') {
+     docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 ' + '--link sonarqube-forja:sonarqube --network=ci-network '
+     +'-v /var/run/docker.sock:/var/run/docker.sock') {
+        sh 'mvn sonar:sonar -Dsonar.jdbc.url=jdbc:h2:tcp://sonarqube:9090/sonar -Dsonar.host.url=http://sonarqube:9000'
+    }
+}
+
+stage ('Build Docker image') {
+     sh 'cp config/release_dockerfile target/Dockerfile'
+     sh "docker build  -t forjaci2019/awesome-project:latest target/."
+ }
+
+stage ('Upload image to DockerHub with version tag') {
+     script {
+        pom = readMavenPom file: 'pom.xml'
+        VERSION = pom.version
+    }
+     sh "docker tag forjaci2019/awesome-project:latest forjaci2019/awesome-project:$VERSION"
+     sh 'docker login -u="forjaci2019" -p="forjaci2019"'
+     sh "docker push forjaci2019/awesome-project:$VERSION"
+}
+    
+stage ('Upload image to DockerHub with tag -LATEST-') {
+    sh 'docker push forjaci2019/awesome-project:latest'
+    
+}
+
+stage ("Update pom.xml version") {
+    script {
+        SNAP = "-SNAPSHOT"
+        pom = readMavenPom file: 'pom.xml'
+        VERSION = pom.version
+    }
+    sh "sed -i 's/${VERSION}/${NEW_POM_VERSION}${SNAP}/' pom.xml"
+    sh 'cat pom.xml'
+}
+
+}
+
