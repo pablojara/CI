@@ -6,7 +6,6 @@ node {
         VERSION = pom.version     
         TIME = java.time.LocalDateTime.now().toLocalDate();
      }
-     echo "Hello world"
      echo "${TIME}"
      echo "${VERSION}"
 

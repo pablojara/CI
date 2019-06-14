@@ -8,8 +8,6 @@ stage('Git Checkout') {
 
 stage('Delete "SNAPSHOT" from pom.xml') {
     sh 'sed -i "s/-SNAPSHOT//" pom.xml'
-    sh 'cat pom.xml'
-
 }
 
 stage ('Unit and SystemTest') {
@@ -55,7 +53,6 @@ stage ("Update pom.xml version") {
         VERSION = pom.version
     }
     sh "sed -i 's/${VERSION}/${NEW_POM_VERSION}${SNAP}/' pom.xml"
-    sh 'cat pom.xml'
 }
 
 }

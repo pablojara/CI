@@ -1,9 +1,6 @@
 node {
-        dockerfile {
-            filename 'Dockerfile.jenkinsAgent'
-            args '-v /var/run/docker.sock:/var/run/docker.sock --network="e35ef571401a" -u jenkins:docker'
-       }
-    stage('Git Checkout') {
+    
+stage('Git Checkout') {
     git url: "ssh://jenkins@codeurjc-forge-gerrit:29418/awesome-project"
     }
     
@@ -13,6 +10,7 @@ stage ('Sonar Analysis') {
         sh 'mvn sonar:sonar -Dsonar.jdbc.url=jdbc:h2:tcp://sonarqube:9090/sonar -Dsonar.host.url=http://sonarqube:9000'
 }
 }
+
 stage ('Unit and SystemTest') {
      docker.image('maven:3-jdk-8-alpine').inside('-v $HOME/.m2:/root/.m2 '
      +'-v /var/run/docker.sock:/var/run/docker.sock') {
