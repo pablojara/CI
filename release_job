@@ -45,7 +45,17 @@ stage ('Upload image to DockerHub with tag -LATEST-') {
     sh 'docker push forjaci2019/awesome-project:latest'
     
 }
-
+stage('Push tag to git') {
+    script {
+        SNAP = "-SNAPSHOT"
+        pom = readMavenPom file: 'pom.xml'
+        VERSION = pom.version
+    }
+        sh 'git config --global user.email "jenkins@example.com"'
+        sh' git config --global user.name "jenkins"'
+        sh("git tag -a ${VERSION} -m 'Jenkins'")
+        sh("git push ssh://jenkins@codeurjc-forge-gerrit:29418/awesome-project --tags")
+}
 stage ("Update pom.xml version") {
     script {
         SNAP = "-SNAPSHOT"

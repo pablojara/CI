@@ -36,7 +36,7 @@ stage ('Buils Docker image') {
  }
 
  stage ('Upload image to DockerHub') {
-     sh "docker tag forjaci2019/awesome-project:${TIME}.nightly.${VERSION} forjaci2019/awesome-project:dev"
+     sh "docker tag forjaci2019/awesome-project:${VERSION}.nightly.${TIME} forjaci2019/awesome-project:dev"
      sh 'docker login -u="forjaci2019" -p="forjaci2019"'
      sh 'docker push forjaci2019/awesome-project:dev'
     }
