@@ -29,12 +29,20 @@ stage ('Sonar Analysis') {
     }
 }
 
-stage ('Buils Docker image') {
+stage ('Build Docker image') {
     
      sh 'cp config/nightly_dockerfile target/Dockerfile'
      sh "docker build  -t forjaci2019/awesome-project:${VERSION}.nightly.${TIME} target/."
  }
 
+stage ('Run System Test over docker image') {
+     docker.image('forjaci2019/awesome-project:latest').inside('-v $HOME/.m2:/root/.m2 '
+     +'-v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""') {
+        sh 'rm target/*.jar && cp /usr/local/lib/TicTacToe.jar target/'
+        sh 'mvn -Dmaven.test.failure.ignore=true -Dtest=WebAppSeleniumSystemTest test'
+     }
+ }
+  
  stage ('Upload image to DockerHub') {
      sh "docker tag forjaci2019/awesome-project:${VERSION}.nightly.${TIME} forjaci2019/awesome-project:dev"
      sh 'docker login -u="forjaci2019" -p="forjaci2019"'
